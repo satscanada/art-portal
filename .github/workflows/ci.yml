@@ -17,8 +17,9 @@ jobs:
     env:
       NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
       NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder-anon-key
-      NEXT_PUBLIC_SITE_NAME: Atelier
-      NEXT_PUBLIC_ARTIST_NAME: Young Artist
+      NEXT_PUBLIC_SITE_NAME: Lakshan's Art Gallery
+      NEXT_PUBLIC_ARTIST_NAME: Lakshan
+      NEXT_PUBLIC_SITE_URL: https://lakshanvs.com
     steps:
       - name: Checkout
         uses: actions/checkout@v4

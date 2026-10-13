@@ -16,6 +16,20 @@ function normalizeTags(tag?: string | string[]) {
     .filter(Boolean);
 }
 
+function withTags(
+  row: Record<string, unknown> & {
+    artwork_tags?: Array<{ tags: Tag | null }>;
+  },
+): Artwork {
+  const tags =
+    row.artwork_tags
+      ?.map((item) => item.tags)
+      .filter((tag): tag is Tag => Boolean(tag)) ?? [];
+  const artwork = { ...row };
+  delete artwork.artwork_tags;
+  return { ...(artwork as unknown as Artwork), tags };
+}
+
 export async function listTags(): Promise<Tag[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
@@ -110,14 +124,7 @@ export async function getArtworkBySlug(slug: string): Promise<Artwork | null> {
 
   if (error) throw error;
   if (!data) return null;
-
-  const tags =
-    (data.artwork_tags as Array<{ tags: Tag | null }> | undefined)
-      ?.map((row) => row.tags)
-      .filter((tag): tag is Tag => Boolean(tag)) ?? [];
-
-  const { artwork_tags: _ignored, ...artwork } = data;
-  return { ...(artwork as Artwork), tags };
+  return withTags(data);
 }
 
 export async function listAllArtworksAdmin(): Promise<Artwork[]> {
@@ -130,14 +137,7 @@ export async function listAllArtworksAdmin(): Promise<Artwork[]> {
 
   if (error) throw error;
 
-  return (data ?? []).map((row) => {
-    const tags =
-      (row.artwork_tags as Array<{ tags: Tag | null }> | undefined)
-        ?.map((item) => item.tags)
-        .filter((tag): tag is Tag => Boolean(tag)) ?? [];
-    const { artwork_tags: _ignored, ...artwork } = row;
-    return { ...(artwork as Artwork), tags };
-  });
+  return (data ?? []).map((row) => withTags(row));
 }
 
 export async function getArtworkByIdAdmin(id: string): Promise<Artwork | null> {
@@ -150,13 +150,7 @@ export async function getArtworkByIdAdmin(id: string): Promise<Artwork | null> {
 
   if (error) throw error;
   if (!data) return null;
-
-  const tags =
-    (data.artwork_tags as Array<{ tags: Tag | null }> | undefined)
-      ?.map((row) => row.tags)
-      .filter((tag): tag is Tag => Boolean(tag)) ?? [];
-  const { artwork_tags: _ignored, ...artwork } = data;
-  return { ...(artwork as Artwork), tags };
+  return withTags(data);
 }
 
 export async function getAnalyticsSummary() {

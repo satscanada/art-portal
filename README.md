@@ -1,6 +1,8 @@
-# Art Portal
+# Art Portal — Lakshan's Art Gallery
 
-A production-ready gallery for displaying and managing Lakshan's artwork.
+Production gallery for displaying and managing Lakshan's artwork.
+
+**Live site:** https://lakshanvs.com
 
 ## Features
 
@@ -10,7 +12,7 @@ A production-ready gallery for displaying and managing Lakshan's artwork.
 - **Tag filters** — browse by curated tags
 - **Viewer tracking** — anonymous page views + per-artwork counters
 - **Admin studio** — upload images, edit captions, manage tags, publish/unpublish, analytics
-- **Deploy path** — GitHub (`satscanada`) + Actions CI + Vercel + Namecheap domain
+- **Deploy path** — GitHub (`satscanada`) + Actions CI + Vercel + Namecheap (`lakshanvs.com`)
 
 ## Stack
 
@@ -28,25 +30,22 @@ npm install
 npm run dev
 ```
 
-- Gallery: http://localhost:3000  
-- Admin: http://localhost:3000/admin/login  
+- Local gallery: http://localhost:3000  
+- Local admin: http://localhost:3000/admin/login  
+- Production: https://lakshanvs.com  
+- Production admin: https://lakshanvs.com/admin/login  
 
 Set branding in `.env.local`:
 
 ```env
-NEXT_PUBLIC_SITE_NAME=Atelier
-NEXT_PUBLIC_ARTIST_NAME=Your Son's Name
+NEXT_PUBLIC_SITE_NAME=Lakshan's Art Gallery
+NEXT_PUBLIC_ARTIST_NAME=Lakshan
 NEXT_PUBLIC_SITE_TAGLINE=A living gallery of young art
 ```
 
 ## Deploy
 
-Follow **[DEPLOY.md](./DEPLOY.md)** for:
-
-1. Supabase setup  
-2. GitHub repo under **satscanada**  
-3. Vercel project + env vars  
-4. Namecheap DNS records  
+Follow **[DEPLOY.md](./DEPLOY.md)** for Supabase, GitHub, Vercel, and Namecheap DNS for **lakshanvs.com**.
 
 ## Scripts
 

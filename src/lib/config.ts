@@ -1,10 +1,11 @@
 export const siteConfig = {
-  name: process.env.NEXT_PUBLIC_SITE_NAME ?? "Atelier",
-  artistName: process.env.NEXT_PUBLIC_ARTIST_NAME ?? "Young Artist",
+  name: process.env.NEXT_PUBLIC_SITE_NAME ?? "Lakshan's Art Gallery",
+  artistName: process.env.NEXT_PUBLIC_ARTIST_NAME ?? "Lakshan",
   tagline:
     process.env.NEXT_PUBLIC_SITE_TAGLINE ??
-    "A living gallery of color, curiosity, and craft",
+    "A living gallery of young art",
   pageSize: Number(process.env.NEXT_PUBLIC_PAGE_SIZE ?? 12),
+  siteUrl: process.env.NEXT_PUBLIC_SITE_URL ?? "https://lakshanvs.com",
 };
 
 export function getSupabaseUrl() {

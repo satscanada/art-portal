@@ -30,7 +30,7 @@ export default function HomePage({
           <div className="mt-8 flex flex-wrap gap-3">
             <a
               href="#gallery"
-              className="rounded-full bg-ink px-5 py-3 text-sm font-medium uppercase tracking-[0.14em] text-white transition hover:bg-accent"
+              className="rounded-full bg-ink px-5 py-3 text-sm font-medium uppercase tracking-[0.14em] text-[#ffffff] transition hover:bg-accent hover:text-[#ffffff]"
             >
               Enter gallery
             </a>
@@ -141,9 +141,9 @@ async function GallerySection({
         </div>
       ) : artworks.length === 0 ? (
         <div className="surface-panel rounded-[1.5rem] p-8">
-          <h3 className="display text-2xl">No artworks yet</h3>
+          <h3 className="display text-2xl">Gallery opening soon</h3>
           <p className="mt-2 text-muted">
-            Sign in at <a href="/admin">/admin</a> to upload the first piece.
+            New works are being prepared. Please check back shortly.
           </p>
         </div>
       ) : (

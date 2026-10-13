@@ -1,6 +1,6 @@
 # Deploy Art Portal (GitHub + Vercel + Namecheap)
 
-This guide gets your son's gallery live on your Namecheap domain, with GitHub as source of truth and Vercel as the host.
+This guide gets **Lakshan's Art Gallery** live on **https://lakshanvs.com** (Namecheap DNS), with GitHub as source of truth and Vercel as the host.
 
 ## Architecture
 
@@ -71,12 +71,12 @@ GitHub Actions workflow: `.github/workflows/ci.yml` (lint + build on `main` / PR
 | --- | --- |
 | `NEXT_PUBLIC_SUPABASE_URL` | from Supabase |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | from Supabase |
-| `NEXT_PUBLIC_SITE_NAME` | e.g. `Atelier` |
-| `NEXT_PUBLIC_ARTIST_NAME` | your son's name |
+| `NEXT_PUBLIC_SITE_NAME` | `Lakshan's Art Gallery` |
+| `NEXT_PUBLIC_ARTIST_NAME` | `Lakshan` |
 | `NEXT_PUBLIC_SITE_TAGLINE` | short line under the brand |
 | `NEXT_PUBLIC_PAGE_SIZE` | `12` |
 
-5. Deploy. You get a URL like `art-portal-xxx.vercel.app`.
+5. Deploy. Preview URL looks like `art-portal-xxx.vercel.app`; production custom domain is **https://lakshanvs.com**.
 
 Every push to `main` → production. Every PR → preview URL.
 
@@ -92,41 +92,30 @@ Recommended default: **keep Vercel Git integration** and use Actions only for CI
 
 ---
 
-## 4. Namecheap domain → Vercel
+## 4. Namecheap domain → Vercel (`lakshanvs.com`)
 
-1. In Vercel → Project → **Settings → Domains** → add your domain (e.g. `gallery.yourdomain.com` or apex `yourdomain.com`).
-2. Vercel shows the DNS records to create.
-
-### In Namecheap (Domain List → Manage → Advanced DNS)
-
-**Apex domain (`yourdomain.com`)**
+1. In Vercel → Project → **Settings → Domains** → add `lakshanvs.com` and `www.lakshanvs.com`.
+2. In Namecheap → **Domain List** → **Manage** `lakshanvs.com` → **Advanced DNS**.
+3. Remove parking / old A / URL Redirect records for `@` and `www`.
+4. Add these records (keep Namecheap nameservers):
 
 | Type | Host | Value |
 | --- | --- | --- |
-| A | `@` | `76.76.21.21` |
+| A | `@` | `216.198.79.1` |
+| A | `@` | `64.29.17.1` |
+| CNAME | `www` | `959d9ce7fda9cf83.vercel-dns-017.com` |
 
-**www**
+5. Wait for DNS (often minutes; can take up to 48h).
+6. Confirm https://lakshanvs.com and https://www.lakshanvs.com load with HTTPS.
 
-| Type | Host | Value |
-| --- | --- | --- |
-| CNAME | `www` | `cname.vercel-dns.com` |
-
-**Subdomain only (e.g. `art.yourdomain.com`)**
-
-| Type | Host | Value |
-| --- | --- | --- |
-| CNAME | `art` | `cname.vercel-dns.com` |
-
-3. Remove conflicting Namecheap parking / redirect records for the same host.
-4. Wait for DNS (often minutes; can take up to 48h).
-5. In Vercel, confirm the domain shows **Valid** and HTTPS is issued automatically.
+> If Vercel shows different recommended IPs/CNAME later, use the values from **Settings → Domains**.
 
 ---
 
 ## 5. Post-deploy checklist
 
-- [ ] Open production URL → gallery loads (empty state is OK).
-- [ ] `/admin/login` works with your Supabase user.
+- [ ] Open https://lakshanvs.com → gallery loads (empty state is OK).
+- [ ] https://lakshanvs.com/admin/login works with your Supabase user.
 - [ ] Create tags → upload an image → set caption → publish.
 - [ ] Public artwork page zooms; views appear under **Admin → Analytics**.
 - [ ] Search by title/caption/tag works.

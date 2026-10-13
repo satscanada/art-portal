@@ -12,12 +12,9 @@ export function SiteHeader() {
           {siteConfig.artistName}
         </p>
       </Link>
-      <nav className="flex items-center gap-5 text-sm text-muted">
-        <Link href="/#gallery" className="transition hover:text-ink">
+      <nav className="flex items-center gap-5 text-sm">
+        <Link href="/#gallery" className="text-muted transition hover:text-ink">
           Gallery
-        </Link>
-        <Link href="/admin" className="transition hover:text-ink">
-          Admin
         </Link>
       </nav>
     </header>
