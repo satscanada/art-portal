@@ -1,69 +1,169 @@
-import Image from "next/image";
+import { Suspense } from "react";
+import { ArtworkCard } from "@/components/gallery/ArtworkCard";
+import { Pagination } from "@/components/gallery/Pagination";
+import { SearchBar } from "@/components/gallery/SearchBar";
+import { TagFilter } from "@/components/gallery/TagFilter";
+import { ViewTracker } from "@/components/gallery/ViewTracker";
+import { listTags, searchArtworks } from "@/lib/artworks";
+import { siteConfig } from "@/lib/config";
 
-export default function Home() {
+type SearchParams = Promise<{ q?: string; tag?: string; page?: string }>;
+
+export default function HomePage({
+  searchParams,
+}: {
+  searchParams: SearchParams;
+}) {
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
+    <div>
+      <ViewTracker path="/" />
+
+      <section className="relative mx-auto grid min-h-[78vh] w-full max-w-6xl items-end px-5 pb-16 pt-10 sm:px-8">
+        <div className="max-w-3xl animate-rise">
+          <p className="display text-5xl leading-[0.95] text-ink sm:text-7xl md:text-8xl">
+            {siteConfig.name}
+          </p>
+          <p className="mt-5 max-w-xl text-lg text-muted sm:text-xl">
+            {siteConfig.tagline} — works by{" "}
+            <span className="text-ink">{siteConfig.artistName}</span>.
+          </p>
+          <div className="mt-8 flex flex-wrap gap-3">
+            <a
+              href="#gallery"
+              className="rounded-full bg-ink px-5 py-3 text-sm font-medium uppercase tracking-[0.14em] text-white transition hover:bg-accent"
+            >
+              Enter gallery
+            </a>
+          </div>
+        </div>
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-x-8 top-8 -z-10 h-[55vh] rounded-[2rem] bg-[radial-gradient(circle_at_30%_20%,rgba(15,107,107,0.18),transparent_45%),linear-gradient(135deg,rgba(255,255,255,0.55),rgba(197,216,224,0.35))]"
         />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+      </section>
+
+      <section
+        id="gallery"
+        className="mx-auto w-full max-w-6xl px-5 pb-20 sm:px-8"
+      >
+        <div className="mb-8 flex flex-col gap-6 animate-rise-delay">
+          <div>
+            <h2 className="display text-3xl text-ink sm:text-4xl">Gallery</h2>
+            <p className="mt-2 text-muted">
+              Search by feeling, medium, or tag. Open any piece to zoom and look
+              closer.
+            </p>
+          </div>
+          <Suspense fallback={<div className="h-12 rounded-full bg-white/50" />}>
+            <SearchBar />
+          </Suspense>
+        </div>
+
+        <Suspense fallback={<GalleryFallback />}>
+          <GallerySection searchParams={searchParams} />
+        </Suspense>
+      </section>
+    </div>
+  );
+}
+
+function GalleryFallback() {
+  return (
+    <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+      {Array.from({ length: 6 }).map((_, index) => (
+        <div
+          key={index}
+          className="h-80 animate-pulse rounded-[1.35rem] bg-white/50"
+        />
+      ))}
+    </div>
+  );
+}
+
+async function GallerySection({
+  searchParams,
+}: {
+  searchParams: SearchParams;
+}) {
+  const params = await searchParams;
+  const page = Number(params.page ?? 1);
+
+  let artworks: Awaited<ReturnType<typeof searchArtworks>>["artworks"] = [];
+  let total = 0;
+  let totalPages = 1;
+  let tags: Awaited<ReturnType<typeof listTags>> = [];
+  let setupError: string | null = null;
+
+  try {
+    const [gallery, allTags] = await Promise.all([
+      searchArtworks({
+        q: params.q,
+        tag: params.tag,
+        page,
+      }),
+      listTags(),
+    ]);
+    artworks = gallery.artworks;
+    total = gallery.total;
+    totalPages = gallery.totalPages;
+    tags = allTags;
+  } catch (error) {
+    setupError =
+      error instanceof Error
+        ? error.message
+        : "Connect Supabase to load the gallery.";
+  }
+
+  return (
+    <>
+      <div className="mb-6">
+        <Suspense fallback={null}>
+          <TagFilter tags={tags} />
+        </Suspense>
+      </div>
+
+      {setupError ? (
+        <div className="surface-panel rounded-[1.5rem] p-8">
+          <h3 className="display text-2xl">Almost ready</h3>
+          <p className="mt-3 max-w-2xl text-muted">
+            Create a Supabase project, run{" "}
+            <code className="rounded bg-white px-1.5 py-0.5 text-sm">
+              supabase/migrations/001_initial.sql
+            </code>
+            , then add your keys to{" "}
+            <code className="rounded bg-white px-1.5 py-0.5 text-sm">
+              .env.local
+            </code>
+            . See <strong>DEPLOY.md</strong> for the full GitHub → Vercel →
+            Namecheap path.
+          </p>
+          <p className="mt-4 text-sm text-red-700">{setupError}</p>
+        </div>
+      ) : artworks.length === 0 ? (
+        <div className="surface-panel rounded-[1.5rem] p-8">
+          <h3 className="display text-2xl">No artworks yet</h3>
+          <p className="mt-2 text-muted">
+            Sign in at <a href="/admin">/admin</a> to upload the first piece.
           </p>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+      ) : (
+        <>
+          <p className="mb-5 text-sm text-muted">
+            Showing {artworks.length} of {total}
+            {params.q ? ` for “${params.q}”` : ""}
+          </p>
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {artworks.map((artwork, index) => (
+              <ArtworkCard key={artwork.id} artwork={artwork} index={index} />
+            ))}
+          </div>
+          <Pagination
+            page={page}
+            totalPages={totalPages}
+            query={{ q: params.q, tag: params.tag }}
+          />
+        </>
+      )}
+    </>
   );
 }
