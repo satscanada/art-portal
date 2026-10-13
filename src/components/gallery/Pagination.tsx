@@ -33,18 +33,19 @@ export function Pagination({
 
   return (
     <nav
-      className="mt-10 flex items-center justify-center gap-2"
+      className="mt-8 flex flex-wrap items-center justify-center gap-2 sm:mt-10"
       aria-label="Pagination"
     >
       <Link
         href={href(Math.max(1, page - 1))}
         className={cn(
-          "rounded-full border border-line px-3 py-2 text-sm transition",
+          "min-h-10 rounded-full border border-line px-3.5 py-2 text-sm transition",
           page === 1 && "pointer-events-none opacity-40",
         )}
         aria-disabled={page === 1}
       >
-        Previous
+        <span className="sm:hidden">Prev</span>
+        <span className="hidden sm:inline">Previous</span>
       </Link>
       {withEllipsis.map((item, index) =>
         item === "…" ? (
@@ -56,9 +57,9 @@ export function Pagination({
             key={item}
             href={href(item)}
             className={cn(
-              "min-w-10 rounded-full border px-3 py-2 text-center text-sm transition",
+              "inline-flex min-h-10 min-w-10 items-center justify-center rounded-full border px-3 py-2 text-center text-sm transition",
               item === page
-                ? "border-ink bg-ink text-white"
+                ? "border-ink bg-ink text-[#fff]"
                 : "border-line hover:border-ink",
             )}
             aria-current={item === page ? "page" : undefined}
@@ -70,7 +71,7 @@ export function Pagination({
       <Link
         href={href(Math.min(totalPages, page + 1))}
         className={cn(
-          "rounded-full border border-line px-3 py-2 text-sm transition",
+          "min-h-10 rounded-full border border-line px-3.5 py-2 text-sm transition",
           page === totalPages && "pointer-events-none opacity-40",
         )}
         aria-disabled={page === totalPages}

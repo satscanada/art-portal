@@ -4,7 +4,8 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
-import { slugify } from "@/lib/utils";
+import { isWeakTitle, titleFromCaption } from "@/lib/titles";
+import { fromDatetimeLocalValue, slugify } from "@/lib/utils";
 
 async function requireUser() {
   const supabase = await createClient();
@@ -21,6 +22,8 @@ const artworkSchema = z.object({
   medium: z.string().max(120).optional().nullable(),
   year: z.coerce.number().int().min(1900).max(2100).optional().nullable(),
   is_published: z.coerce.boolean().optional().default(true),
+  is_featured: z.coerce.boolean().optional().default(false),
+  scheduled_at: z.string().nullable().optional(),
   sort_order: z.coerce.number().int().optional().default(0),
   tag_ids: z.array(z.string().uuid()).optional().default([]),
 });
@@ -80,12 +83,17 @@ export async function saveArtworkAction(formData: FormData) {
   const imagePath = String(formData.get("image_path") ?? "");
   const tagIds = formData.getAll("tag_ids").map(String).filter(Boolean);
 
+  const scheduledRaw = String(formData.get("scheduled_at") ?? "");
+  const scheduledAt = fromDatetimeLocalValue(scheduledRaw);
+
   const parsed = artworkSchema.parse({
     title: formData.get("title"),
     caption: formData.get("caption") ?? "",
     medium: formData.get("medium") || null,
     year: formData.get("year") || null,
     is_published: formData.get("is_published") === "on",
+    is_featured: formData.get("is_featured") === "on",
+    scheduled_at: scheduledAt,
     sort_order: formData.get("sort_order") || 0,
     tag_ids: tagIds,
   });
@@ -103,6 +111,8 @@ export async function saveArtworkAction(formData: FormData) {
     medium: parsed.medium,
     year: parsed.year,
     is_published: parsed.is_published,
+    is_featured: parsed.is_featured,
+    scheduled_at: parsed.scheduled_at,
     sort_order: parsed.sort_order,
     ...(imagePath ? { image_path: imagePath } : {}),
     ...(slug ? { slug } : {}),
@@ -191,4 +201,139 @@ export async function uploadArtworkImage(formData: FormData) {
   }
 
   return { path };
+}
+
+export async function toggleFeaturedAction(formData: FormData) {
+  const supabase = await requireUser();
+  const id = String(formData.get("id") ?? "");
+  const featured = formData.get("is_featured") === "true";
+  if (!id) return;
+
+  const { error } = await supabase
+    .from("artworks")
+    .update({ is_featured: !featured })
+    .eq("id", id);
+  if (error) throw error;
+
+  revalidatePath("/");
+  revalidatePath("/admin/artworks");
+  revalidatePath(`/admin/artworks/${id}`);
+}
+
+export async function improveTitlesAction() {
+  const supabase = await requireUser();
+  const { data, error } = await supabase
+    .from("artworks")
+    .select("id, title, caption, year, slug");
+  if (error) throw error;
+
+  let updated = 0;
+  for (const artwork of data ?? []) {
+    if (!isWeakTitle(artwork.title)) continue;
+    const nextTitle = titleFromCaption(artwork.caption ?? "", artwork.year);
+    if (!nextTitle || nextTitle === artwork.title) continue;
+
+    const { error: updateError } = await supabase
+      .from("artworks")
+      .update({ title: nextTitle })
+      .eq("id", artwork.id);
+    if (updateError) throw updateError;
+    updated += 1;
+    revalidatePath(`/artwork/${artwork.slug}`);
+  }
+
+  revalidatePath("/");
+  revalidatePath("/admin/artworks");
+  return { updated };
+}
+
+export async function reorderArtworksAction(orderedIds: string[]) {
+  const supabase = await requireUser();
+  const ids = orderedIds.filter(Boolean);
+  if (!ids.length) return { ok: true as const };
+
+  const total = ids.length;
+  for (let index = 0; index < ids.length; index += 1) {
+    const sort_order = total - index;
+    const { error } = await supabase
+      .from("artworks")
+      .update({ sort_order })
+      .eq("id", ids[index]);
+    if (error) throw error;
+  }
+
+  revalidatePath("/");
+  revalidatePath("/admin/artworks");
+  return { ok: true as const };
+}
+
+const exhibitionSchema = z.object({
+  title: z.string().min(1).max(160),
+  summary: z.string().max(500).optional().default(""),
+  body: z.string().max(20000).optional().default(""),
+  location: z.string().max(200).optional().nullable(),
+  starts_on: z.string().optional().nullable(),
+  ends_on: z.string().optional().nullable(),
+  is_published: z.coerce.boolean().optional().default(true),
+  sort_order: z.coerce.number().int().optional().default(0),
+});
+
+export async function saveExhibitionAction(formData: FormData) {
+  const supabase = await requireUser();
+  const id = String(formData.get("id") ?? "") || null;
+
+  const starts = String(formData.get("starts_on") ?? "").trim() || null;
+  const ends = String(formData.get("ends_on") ?? "").trim() || null;
+
+  const parsed = exhibitionSchema.parse({
+    title: formData.get("title"),
+    summary: formData.get("summary") ?? "",
+    body: formData.get("body") ?? "",
+    location: formData.get("location") || null,
+    starts_on: starts,
+    ends_on: ends,
+    is_published: formData.get("is_published") === "on",
+    sort_order: formData.get("sort_order") || 0,
+  });
+
+  const baseSlug = slugify(parsed.title);
+  const payload = {
+    title: parsed.title,
+    summary: parsed.summary,
+    body: parsed.body,
+    location: parsed.location,
+    starts_on: parsed.starts_on,
+    ends_on: parsed.ends_on,
+    is_published: parsed.is_published,
+    sort_order: parsed.sort_order,
+    ...(id ? {} : { slug: `${baseSlug}-${Date.now().toString(36)}` }),
+  };
+
+  if (id) {
+    const { error } = await supabase
+      .from("exhibitions")
+      .update(payload)
+      .eq("id", id);
+    if (error) throw error;
+  } else {
+    const { error } = await supabase.from("exhibitions").insert(payload);
+    if (error) throw error;
+  }
+
+  revalidatePath("/news");
+  revalidatePath("/admin/news");
+  redirect("/admin/news");
+}
+
+export async function deleteExhibitionAction(formData: FormData) {
+  const supabase = await requireUser();
+  const id = String(formData.get("id") ?? "");
+  if (!id) return;
+
+  const { error } = await supabase.from("exhibitions").delete().eq("id", id);
+  if (error) throw error;
+
+  revalidatePath("/news");
+  revalidatePath("/admin/news");
+  redirect("/admin/news");
 }

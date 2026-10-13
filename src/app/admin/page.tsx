@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { Suspense } from "react";
 import { AdminNav } from "@/components/admin/AdminNav";
-import { getAnalyticsSummary, listAllArtworksAdmin } from "@/lib/artworks";
+import { getPublicSiteStats } from "@/lib/analytics";
+import { listAllArtworksAdmin } from "@/lib/artworks";
 import { formatCount } from "@/lib/utils";
 
 export default function AdminHomePage() {
@@ -20,9 +21,9 @@ export default function AdminHomePage() {
 }
 
 async function AdminOverview() {
-  const [artworks, analytics] = await Promise.all([
+  const [artworks, stats] = await Promise.all([
     listAllArtworksAdmin(),
-    getAnalyticsSummary(),
+    getPublicSiteStats(),
   ]);
 
   const published = artworks.filter((item) => item.is_published).length;
@@ -39,18 +40,18 @@ async function AdminOverview() {
         </div>
         <div className="surface-panel rounded-[1.25rem] p-5">
           <p className="text-xs uppercase tracking-[0.16em] text-muted">
-            Page views
+            Visitors
           </p>
           <p className="display mt-2 text-3xl">
-            {formatCount(analytics.total_views)}
+            {formatCount(stats.unique_visitors)}
           </p>
         </div>
         <div className="surface-panel rounded-[1.25rem] p-5">
           <p className="text-xs uppercase tracking-[0.16em] text-muted">
-            Sessions
+            Page views
           </p>
           <p className="display mt-2 text-3xl">
-            {formatCount(analytics.unique_sessions)}
+            {formatCount(stats.total_views)}
           </p>
         </div>
       </div>
@@ -58,15 +59,33 @@ async function AdminOverview() {
       <div className="mt-8 flex flex-wrap gap-3">
         <Link
           href="/admin/artworks/new"
-          className="rounded-full bg-ink px-5 py-3 text-sm uppercase tracking-[0.14em] text-white"
+          className="rounded-full bg-ink px-5 py-3 text-sm uppercase tracking-[0.14em] text-[#fff]"
         >
           Upload artwork
+        </Link>
+        <Link
+          href="/admin/analytics"
+          className="rounded-full border border-line px-5 py-3 text-sm uppercase tracking-[0.14em]"
+        >
+          View analytics
         </Link>
         <Link
           href="/admin/tags"
           className="rounded-full border border-line px-5 py-3 text-sm uppercase tracking-[0.14em]"
         >
           Manage tags
+        </Link>
+        <Link
+          href="/admin/guestbook"
+          className="rounded-full border border-line px-5 py-3 text-sm uppercase tracking-[0.14em]"
+        >
+          Moderate guestbook
+        </Link>
+        <Link
+          href="/admin/news"
+          className="rounded-full border border-line px-5 py-3 text-sm uppercase tracking-[0.14em]"
+        >
+          News & exhibitions
         </Link>
       </div>
     </>

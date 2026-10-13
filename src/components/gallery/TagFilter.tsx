@@ -21,13 +21,14 @@ export function TagFilter({ tags }: { tags: Tag[] }) {
   if (!tags.length) return null;
 
   return (
-    <div className="flex flex-wrap gap-2">
+    <div className="tag-scroller" role="list">
       <Link
         href={hrefFor()}
+        role="listitem"
         className={cn(
-          "rounded-full border px-3 py-1.5 text-xs uppercase tracking-[0.16em] transition",
+          "rounded-full border px-3.5 py-2 text-[11px] uppercase tracking-[0.14em] transition sm:text-xs sm:tracking-[0.16em]",
           !active
-            ? "border-ink bg-ink text-white"
+            ? "border-ink bg-ink text-[#fff]"
             : "border-line bg-surface text-muted hover:border-ink hover:text-ink",
         )}
       >
@@ -37,10 +38,11 @@ export function TagFilter({ tags }: { tags: Tag[] }) {
         <Link
           key={tag.id}
           href={hrefFor(tag.slug)}
+          role="listitem"
           className={cn(
-            "rounded-full border px-3 py-1.5 text-xs uppercase tracking-[0.16em] transition",
+            "rounded-full border px-3.5 py-2 text-[11px] uppercase tracking-[0.14em] transition sm:text-xs sm:tracking-[0.16em]",
             active === tag.slug
-              ? "border-accent bg-accent text-white"
+              ? "border-accent bg-accent text-[#fff]"
               : "border-line bg-surface text-muted hover:border-ink hover:text-ink",
           )}
         >

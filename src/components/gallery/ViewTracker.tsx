@@ -2,20 +2,7 @@
 
 import { useEffect } from "react";
 import { trackView } from "@/lib/actions/views";
-
-const SESSION_KEY = "artportal_session";
-
-function getSessionId() {
-  try {
-    const existing = window.localStorage.getItem(SESSION_KEY);
-    if (existing) return existing;
-    const created = crypto.randomUUID();
-    window.localStorage.setItem(SESSION_KEY, created);
-    return created;
-  } catch {
-    return null;
-  }
-}
+import { getVisitorSessionId } from "@/lib/session";
 
 export function ViewTracker({
   path,
@@ -32,7 +19,7 @@ export function ViewTracker({
     void trackView({
       path,
       artworkId,
-      sessionId: getSessionId(),
+      sessionId: getVisitorSessionId(),
       referrer: document.referrer || null,
       userAgent: navigator.userAgent,
     });

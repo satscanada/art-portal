@@ -1,12 +1,19 @@
 import { siteConfig } from "@/lib/config";
 import { createClient } from "@/lib/supabase/server";
 import type { Artwork, ArtworkSearchRow, Tag } from "@/lib/types";
+import { isArtworkLive } from "@/lib/utils";
 
 export type GalleryQuery = {
   q?: string;
   tag?: string | string[];
   page?: number;
 };
+
+const LIVE_FILTER = "scheduled_at.is.null,scheduled_at.lte.";
+
+function liveScheduledFilter() {
+  return `${LIVE_FILTER}${new Date().toISOString()}`;
+}
 
 function normalizeTags(tag?: string | string[]) {
   if (!tag) return [] as string[];
@@ -27,7 +34,13 @@ function withTags(
       .filter((tag): tag is Tag => Boolean(tag)) ?? [];
   const artwork = { ...row };
   delete artwork.artwork_tags;
-  return { ...(artwork as unknown as Artwork), tags };
+  return {
+    ...(artwork as unknown as Artwork),
+    scheduled_at: (artwork.scheduled_at as string | null | undefined) ?? null,
+    favorite_count: Number(artwork.favorite_count ?? 0),
+    is_featured: Boolean(artwork.is_featured),
+    tags,
+  };
 }
 
 export async function listTags(): Promise<Tag[]> {
@@ -74,8 +87,11 @@ export async function searchArtworks(query: GalleryQuery) {
     width_px: row.width_px,
     height_px: row.height_px,
     is_published: true,
+    is_featured: false,
+    scheduled_at: null,
     sort_order: 0,
     view_count: row.view_count,
+    favorite_count: row.favorite_count ?? 0,
     created_at: row.created_at,
     updated_at: row.created_at,
     tags: tagsByArtwork[row.id] ?? [],
@@ -115,16 +131,16 @@ export async function getArtworkBySlug(slug: string): Promise<Artwork | null> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("artworks")
-    .select(
-      "*, artwork_tags(tags(id, name, slug))",
-    )
+    .select("*, artwork_tags(tags(id, name, slug))")
     .eq("slug", slug)
     .eq("is_published", true)
+    .or(liveScheduledFilter())
     .maybeSingle();
 
   if (error) throw error;
   if (!data) return null;
-  return withTags(data);
+  const artwork = withTags(data);
+  return isArtworkLive(artwork) ? artwork : null;
 }
 
 export async function listAllArtworksAdmin(): Promise<Artwork[]> {
@@ -153,38 +169,90 @@ export async function getArtworkByIdAdmin(id: string): Promise<Artwork | null> {
   return withTags(data);
 }
 
-export async function getAnalyticsSummary() {
+export async function listHeroArtworks(limit = 8): Promise<Artwork[]> {
   const supabase = await createClient();
+  const columns =
+    "id, title, caption, slug, image_path, thumbnail_path, medium, year, width_px, height_px, is_published, is_featured, scheduled_at, sort_order, view_count, favorite_count, created_at, updated_at";
 
-  const [{ data: artworks, error: artError }, { count, error: viewError }] =
-    await Promise.all([
-      supabase
-        .from("artworks")
-        .select("id, title, slug, view_count")
-        .order("view_count", { ascending: false })
-        .limit(10),
-      supabase
-        .from("page_views")
-        .select("*", { count: "exact", head: true }),
-    ]);
+  const { data: featured, error: featuredError } = await supabase
+    .from("artworks")
+    .select(columns)
+    .eq("is_published", true)
+    .eq("is_featured", true)
+    .or(liveScheduledFilter())
+    .order("sort_order", { ascending: false })
+    .order("created_at", { ascending: false })
+    .limit(limit);
 
-  if (artError) throw artError;
-  if (viewError) throw viewError;
+  if (featuredError) throw featuredError;
 
-  const { data: sessions, error: sessionError } = await supabase
-    .from("page_views")
-    .select("session_id")
-    .not("session_id", "is", null);
+  const picked = ((featured ?? []) as Artwork[]).filter(isArtworkLive);
+  if (picked.length >= limit) return picked;
 
-  if (sessionError) throw sessionError;
+  const exclude = new Set(picked.map((item) => item.id));
+  const { data: recent, error: recentError } = await supabase
+    .from("artworks")
+    .select(columns)
+    .eq("is_published", true)
+    .or(liveScheduledFilter())
+    .order("sort_order", { ascending: false })
+    .order("created_at", { ascending: false })
+    .limit(limit * 2);
 
-  const uniqueSessions = new Set(
-    (sessions ?? []).map((row) => row.session_id).filter(Boolean),
-  ).size;
+  if (recentError) throw recentError;
+
+  const fill = ((recent ?? []) as Artwork[])
+    .filter(isArtworkLive)
+    .filter((item) => !exclude.has(item.id));
+  return [...picked, ...fill].slice(0, limit);
+}
+
+export async function listGalleryNav(slug: string) {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("artworks")
+    .select(
+      "id, title, slug, image_path, thumbnail_path, width_px, height_px, is_published, scheduled_at",
+    )
+    .eq("is_published", true)
+    .or(liveScheduledFilter())
+    .order("sort_order", { ascending: false })
+    .order("created_at", { ascending: false });
+
+  if (error) throw error;
+
+  const items = (data ?? []).filter((item) =>
+    isArtworkLive({
+      is_published: item.is_published,
+      scheduled_at: item.scheduled_at,
+    }),
+  );
+  const index = items.findIndex((item) => item.slug === slug);
+  if (index < 0) {
+    return { prev: null, next: null, index: -1, total: items.length };
+  }
 
   return {
-    total_views: count ?? 0,
-    unique_sessions: uniqueSessions,
-    top_artworks: artworks ?? [],
+    prev: index > 0 ? items[index - 1] : items[items.length - 1],
+    next: index < items.length - 1 ? items[index + 1] : items[0],
+    index,
+    total: items.length,
   };
+}
+
+export async function listTopFavorites(limit = 8): Promise<Artwork[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("artworks")
+    .select(
+      "id, title, caption, slug, image_path, thumbnail_path, medium, year, width_px, height_px, is_published, is_featured, scheduled_at, sort_order, view_count, favorite_count, created_at, updated_at",
+    )
+    .eq("is_published", true)
+    .gt("favorite_count", 0)
+    .order("favorite_count", { ascending: false })
+    .order("view_count", { ascending: false })
+    .limit(limit);
+
+  if (error) throw error;
+  return ((data ?? []) as Artwork[]).filter(isArtworkLive);
 }

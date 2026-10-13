@@ -9,6 +9,7 @@ import {
 } from "@/lib/actions/admin";
 import { getPublicImageUrl } from "@/lib/config";
 import type { Artwork, Tag } from "@/lib/types";
+import { toDatetimeLocalValue } from "@/lib/utils";
 
 export function ArtworkForm({
   artwork,
@@ -121,13 +122,38 @@ export function ArtworkForm({
           </div>
         </fieldset>
 
-        <label className="inline-flex items-center gap-2 text-sm">
+        <div className="flex flex-wrap gap-5">
+          <label className="inline-flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              name="is_published"
+              defaultChecked={artwork?.is_published ?? true}
+            />
+            Published
+          </label>
+          <label className="inline-flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              name="is_featured"
+              defaultChecked={artwork?.is_featured ?? false}
+            />
+            Pin to hero
+          </label>
+        </div>
+
+        <label className="block space-y-2 text-sm">
+          <span className="uppercase tracking-[0.16em] text-muted">
+            Schedule publish
+          </span>
           <input
-            type="checkbox"
-            name="is_published"
-            defaultChecked={artwork?.is_published ?? true}
+            name="scheduled_at"
+            type="datetime-local"
+            defaultValue={toDatetimeLocalValue(artwork?.scheduled_at)}
+            className="w-full rounded-xl border border-line bg-white px-4 py-3 outline-none focus:border-accent"
           />
-          Published
+          <span className="block text-xs text-muted">
+            Leave empty to go live immediately when Published is checked.
+          </span>
         </label>
 
         {error ? <p className="text-sm text-red-700">{error}</p> : null}

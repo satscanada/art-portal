@@ -22,21 +22,34 @@ export function SearchBar() {
   }
 
   return (
-    <form onSubmit={onSubmit} className="relative w-full max-w-xl">
-      <Search className="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-muted" />
-      <input
-        value={value}
-        onChange={(event) => setValue(event.target.value)}
-        placeholder="Smart search titles, captions, media, tags…"
-        className="w-full rounded-full border border-line bg-surface-strong/80 py-3.5 pl-11 pr-28 text-sm outline-none transition focus:border-accent focus:ring-4 focus:ring-[var(--glow)]"
-        aria-label="Search artworks"
-      />
+    <form
+      onSubmit={onSubmit}
+      className="flex w-full max-w-xl flex-col gap-2 sm:relative sm:block"
+    >
+      <div className="relative">
+        <Search className="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-muted" />
+        <input
+          value={value}
+          onChange={(event) => setValue(event.target.value)}
+          placeholder="Search titles, captions, tags…"
+          className="w-full rounded-full border border-line bg-surface-strong/90 py-3.5 pl-11 pr-4 text-base outline-none transition focus:border-accent focus:ring-4 focus:ring-[var(--glow)] sm:pr-28 sm:text-sm"
+          aria-label="Search artworks"
+          enterKeyHint="search"
+        />
+        <button
+          type="submit"
+          disabled={pending}
+          className="absolute right-1.5 top-1/2 hidden min-h-10 -translate-y-1/2 rounded-full bg-ink px-4 py-2 text-xs font-medium uppercase tracking-[0.14em] text-[#fff] transition hover:bg-accent disabled:opacity-60 sm:inline-flex sm:items-center"
+        >
+          {pending ? "…" : "Search"}
+        </button>
+      </div>
       <button
         type="submit"
         disabled={pending}
-        className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded-full bg-ink px-4 py-2 text-xs font-medium uppercase tracking-[0.14em] text-white transition hover:bg-accent disabled:opacity-60"
+        className="inline-flex min-h-11 w-full items-center justify-center rounded-full bg-ink px-4 py-3 text-xs font-medium uppercase tracking-[0.14em] text-[#fff] transition hover:bg-accent disabled:opacity-60 sm:hidden"
       >
-        {pending ? "…" : "Search"}
+        {pending ? "Searching…" : "Search gallery"}
       </button>
     </form>
   );
