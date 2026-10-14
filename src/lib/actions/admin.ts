@@ -220,6 +220,42 @@ export async function toggleFeaturedAction(formData: FormData) {
   revalidatePath(`/admin/artworks/${id}`);
 }
 
+export async function setArtworkFeaturedAction(id: string, featured: boolean) {
+  const supabase = await requireUser();
+  if (!id) return { error: "Missing artwork" };
+
+  const { error } = await supabase
+    .from("artworks")
+    .update({ is_featured: featured })
+    .eq("id", id);
+  if (error) return { error: error.message };
+
+  revalidatePath("/");
+  revalidatePath("/admin/artworks");
+  revalidatePath(`/admin/artworks/${id}`);
+  return { ok: true as const };
+}
+
+export async function renameArtworkTitleAction(id: string, title: string) {
+  const supabase = await requireUser();
+  const nextTitle = title.trim().slice(0, 160);
+  if (!id || !nextTitle) return { error: "Title is required" };
+
+  const { data, error } = await supabase
+    .from("artworks")
+    .update({ title: nextTitle })
+    .eq("id", id)
+    .select("slug")
+    .maybeSingle();
+  if (error) return { error: error.message };
+
+  revalidatePath("/");
+  revalidatePath("/admin/artworks");
+  revalidatePath(`/admin/artworks/${id}`);
+  if (data?.slug) revalidatePath(`/artwork/${data.slug}`);
+  return { ok: true as const, title: nextTitle };
+}
+
 export async function improveTitlesAction() {
   const supabase = await requireUser();
   const { data, error } = await supabase

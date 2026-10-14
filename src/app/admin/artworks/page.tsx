@@ -13,7 +13,7 @@ export default function AdminArtworksPage() {
         <div>
           <h1 className="display text-4xl text-ink">Artworks</h1>
           <p className="mt-2 text-muted">
-            Drag to reorder, pin hero pieces, schedule, and refine titles.
+            Drag cards to reorder, pin icons for the hero, rename titles in place.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
